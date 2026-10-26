@@ -39,6 +39,9 @@ return {
     -- Movement
     fasterStrafing = true,              -- faster strafing speed
     slowerBackpedaling = true,          -- slower backpedaling speed
+
+    -- Audio
+    npcVoices = true,                   -- play generated NPC voice lines found in Data/Voices/NPC
 }
 
 -----------------------------
@@ -293,6 +296,7 @@ AlchemyBagKey = mawSettings.AlchemyBagKey
 disableSpellBookRework = mawSettings.disableSpellBookRework
 teleportDeadMonstersAndCraftingKey = mawSettings.teleportDeadMonstersAndCraftingKey
 crashDiagnostics = mawSettings.crashDiagnostics
+npcVoices = mawSettings.npcVoices
 
 -- Store settings in vars for access by other scripts
 function events.LoadMap()
