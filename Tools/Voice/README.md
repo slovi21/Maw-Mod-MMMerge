@@ -178,9 +178,35 @@ Not covered yet:
 - Multiplayer: on a client, `Evt.lua` replaces the greeting with the host's
   text; the key still works because it is computed from the final text.
 
-## In-game test
+## In-game test (2026-10-26)
 
-Pending — filled in after the test on 2026-10-26.
+Install: MM8 + MMMerge + MAW 4.5 (local), with only two additions:
+`Scripts/General/zzzMaw_NPCVoices.lua` and `Data/Voices/NPC/` (64 files). The
+tester played a new game on Emerald Island and then on Dagger Wound Island and
+reported that it worked. `NPCVoicesLog.txt` from that session (34 lines):
+
+- **Greetings play:** S'ton (both variants, first visit and "seen"),
+  Brekish Onefang, Dadeross; re-entering a dialog plays the greeting again.
+- **Topic texts play — the `Game.NPCMessage` poll catches compiled
+  `Global.EVT` `SetMessage` output:** 3 of Brekish's, 4 of Dadeross's, 3 of
+  S'ton's topics played; switching topics switches the line.
+- **Keys match the game:** every logged text that exists unchanged in the LOD
+  had the extractor's key (6 of 6 among the unvoiced lines checked by hand:
+  NPCGreet 133, NPCText 22, 23, 1627, NPCNews 1, …).
+- **Edited text stays silent:** NPCText 2287 (a hireling's offer) contains
+  `%17`, which the engine fills in; its runtime key differs, nothing played.
+- **Coverage gaps seen:**
+  - Brekish's topics *Take this crystal…*/*Bring the portal crystal…*
+    (NPCText 22, 23) were not generated: the NPC gets those topics at run time
+    (`SetNPCTopic`, evt command 0x27), while the extractor only follows the
+    topics in `NPCData.txt`. Fix: follow `SetNPCTopic` in Global.EVT and map
+    evts, or simply voice every NPCText entry any `SetMessage` reaches
+    (1,529).
+  - A news line (NPCNews 1, *If the pirates make it through…*) came through
+    the greeting path; `NPCNews.txt` is not extracted yet.
+
+Stopping on exit was reported working by the tester; the log does not
+record stops.
 
 ## Next steps
 
