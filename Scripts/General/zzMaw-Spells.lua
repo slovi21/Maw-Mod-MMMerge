@@ -2796,16 +2796,44 @@ local function logBuffCast(t, special)
 	end
 end
 
+-- mawBuffCast is the only place that reserves mana for a caster: log each call
+-- with its call stack to see which path books a buff to a character.
+local function logBuffReserve(index, spellId)
+	if MawBuffCastLogCount>=BUFF_CAST_LOG_LIMIT then
+		return
+	end
+	MawBuffCastLogCount=MawBuffCastLogCount+1
+	local line=string.format("%s RESERVE spell=%s caster=%s current=%s before=%s map=%s house=%s stack=%s\n",
+		logValue(function() return os.date("%Y-%m-%d %H:%M:%S") end),
+		tostring(spellId),
+		tostring(index),
+		logValue(function() return Game.CurrentPlayer end),
+		logValue(function() return vars.mawbuff[spellId] end),
+		logValue(function() return Map.Name end),
+		logValue(function() return Game:GetCurrentHouse() end),
+		logValue(function() return debug.traceback("", 4):gsub("%s*\n%s*", " | "):sub(1, 1000) end))
+	local f=io.open("MawBuffCast.log", "a")
+	if f then
+		f:write(line)
+		f:close()
+	end
+end
+
+-- a failing logger must never break a cast; its error text goes into the log
+local function runBuffLog(logger, ...)
+	local logged, logErr=pcall(logger, ...)
+	if not logged then
+		pcall(function()
+			local f=io.open("MawBuffCast.log", "a")
+			f:write("LOGGER FAILED: "..tostring(logErr).."\n")
+			f:close()
+		end)
+	end
+end
+
 function events.PlayerCastSpell(t)
 	if (buffSpell[t.SpellId] or utilitySpell[t.SpellId]) and vars.MAWSETTINGS.buffRework=="ON" then
-		local logged, logErr=pcall(logBuffCast, t, t.TargetKind==4 or t.IsSpellScroll)
-		if not logged then
-			pcall(function()
-				local f=io.open("MawBuffCast.log", "a")
-				f:write("LOGGER FAILED: "..tostring(logErr).."\n")
-				f:close()
-			end)
-		end
+		runBuffLog(logBuffCast, t, t.TargetKind==4 or t.IsSpellScroll)
 		-- Scrolls & Pedestals
 		if t.TargetKind==4 or t.IsSpellScroll then
 			vars.mawbuff[t.SpellId]=Map.Name
@@ -2847,6 +2875,7 @@ end
 
 --maw manual buff cast
 function mawBuffCast(pl, index, spellId)
+	runBuffLog(logBuffReserve, index, spellId)
 	if vars.mawbuff[spellId]~=index then --cast buff
 		local id=-1
 		for i=0, Party.High do
