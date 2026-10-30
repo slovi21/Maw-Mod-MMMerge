@@ -2757,26 +2757,55 @@ end
 -- reached PlayerCastSpell and which branch took it. Never touches the cast.
 MawBuffCastLogCount=0
 local BUFF_CAST_LOG_LIMIT=100
+local function logValue(getter)
+	local ok, v=pcall(getter)
+	if ok then
+		return tostring(v)
+	end
+	return "ERR<"..tostring(v):gsub("%s+", " "):sub(1, 80)..">"
+end
+
 local function logBuffCast(t, special)
 	if MawBuffCastLogCount>=BUFF_CAST_LOG_LIMIT then
 		return
 	end
 	MawBuffCastLogCount=MawBuffCastLogCount+1
+	-- every engine value is read on its own: one failing accessor must not swallow the whole line
+	local line=string.format("%s spell=%s player=%s current=%s kind=%s targetId=%s rawTarget=%s scroll=%s skillSet=%s flags=%s sp=%s skill=%s mastery=%s before=%s map=%s house=%s -> %s\n",
+		logValue(function() return os.date("%Y-%m-%d %H:%M:%S") end),
+		logValue(function() return t.SpellId end),
+		logValue(function() return t.PlayerIndex end),
+		logValue(function() return Game.CurrentPlayer end),
+		logValue(function() return t.TargetKind end),
+		logValue(function() return t.TargetId end),
+		logValue(function() return t.RawTargetRef end),
+		logValue(function() return t.IsSpellScroll end),
+		logValue(function() return t.SkillSet end),
+		logValue(function() return t.SlotFlags end),
+		logValue(function() return t.SPCost end),
+		logValue(function() return t.Skill end),
+		logValue(function() return t.Mastery end),
+		logValue(function() return vars.mawbuff[t.SpellId] end),
+		logValue(function() return Map.Name end),
+		logValue(function() return Game:GetCurrentHouse() end),
+		special and "special (no mana reserved)" or "manual (mana reserved)")
 	local f=io.open("MawBuffCast.log", "a")
 	if f then
-		f:write(string.format("%s spell=%s player=%s current=%s kind=%s targetId=%s rawTarget=%s scroll=%s skillSet=%s flags=%s sp=%s skill=%s mastery=%s before=%s map=%s house=%s -> %s\n",
-			os.date("%Y-%m-%d %H:%M:%S"), tostring(t.SpellId), tostring(t.PlayerIndex), tostring(Party.CurrentPlayer),
-			tostring(t.TargetKind), tostring(t.TargetId), tostring(t.RawTargetRef), tostring(t.IsSpellScroll),
-			tostring(t.SkillSet), tostring(t.SlotFlags), tostring(t.SPCost), tostring(t.Skill), tostring(t.Mastery),
-			tostring(vars.mawbuff[t.SpellId]), tostring(Map.Name), tostring(Game:GetCurrentHouse()),
-			special and "special (no mana reserved)" or "manual (mana reserved)"))
+		f:write(line)
 		f:close()
 	end
 end
 
 function events.PlayerCastSpell(t)
 	if (buffSpell[t.SpellId] or utilitySpell[t.SpellId]) and vars.MAWSETTINGS.buffRework=="ON" then
-		pcall(logBuffCast, t, t.TargetKind==4 or t.IsSpellScroll)
+		local logged, logErr=pcall(logBuffCast, t, t.TargetKind==4 or t.IsSpellScroll)
+		if not logged then
+			pcall(function()
+				local f=io.open("MawBuffCast.log", "a")
+				f:write("LOGGER FAILED: "..tostring(logErr).."\n")
+				f:close()
+			end)
+		end
 		-- Scrolls & Pedestals
 		if t.TargetKind==4 or t.IsSpellScroll then
 			vars.mawbuff[t.SpellId]=Map.Name
