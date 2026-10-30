@@ -2753,8 +2753,30 @@ function events.Action(t)
 	end
 end
 
+-- Diagnosis for pedestal buffs that reserve mana: records how a buff spell
+-- reached PlayerCastSpell and which branch took it. Never touches the cast.
+MawBuffCastLogCount=0
+local BUFF_CAST_LOG_LIMIT=100
+local function logBuffCast(t, special)
+	if MawBuffCastLogCount>=BUFF_CAST_LOG_LIMIT then
+		return
+	end
+	MawBuffCastLogCount=MawBuffCastLogCount+1
+	local f=io.open("MawBuffCast.log", "a")
+	if f then
+		f:write(string.format("%s spell=%s player=%s current=%s kind=%s targetId=%s rawTarget=%s scroll=%s skillSet=%s flags=%s sp=%s skill=%s mastery=%s before=%s map=%s house=%s -> %s\n",
+			os.date("%Y-%m-%d %H:%M:%S"), tostring(t.SpellId), tostring(t.PlayerIndex), tostring(Party.CurrentPlayer),
+			tostring(t.TargetKind), tostring(t.TargetId), tostring(t.RawTargetRef), tostring(t.IsSpellScroll),
+			tostring(t.SkillSet), tostring(t.SlotFlags), tostring(t.SPCost), tostring(t.Skill), tostring(t.Mastery),
+			tostring(vars.mawbuff[t.SpellId]), tostring(Map.Name), tostring(Game:GetCurrentHouse()),
+			special and "special (no mana reserved)" or "manual (mana reserved)"))
+		f:close()
+	end
+end
+
 function events.PlayerCastSpell(t)
 	if (buffSpell[t.SpellId] or utilitySpell[t.SpellId]) and vars.MAWSETTINGS.buffRework=="ON" then
+		pcall(logBuffCast, t, t.TargetKind==4 or t.IsSpellScroll)
 		-- Scrolls & Pedestals
 		if t.TargetKind==4 or t.IsSpellScroll then
 			vars.mawbuff[t.SpellId]=Map.Name

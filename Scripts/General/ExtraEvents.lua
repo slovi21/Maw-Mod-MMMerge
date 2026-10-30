@@ -852,6 +852,9 @@ mem.autohook(0x42609e, function(d)
 		TargetKind = bit.And(target_ref, 7), -- object or monster
 		TargetId = bit.rshift(target_ref, 3),
 		IsSpellScroll = is_spell_scroll,
+		SkillSet = skill_set, -- skill fixed by the caller (events, CastSpellDirect): no spellpoints are spent
+		SlotFlags = u1[slot + 8],
+		RawTargetRef = target_ref,
 		CurseInterrupt = cursed,
 		Handled = false}
 
