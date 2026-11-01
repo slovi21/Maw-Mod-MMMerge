@@ -484,6 +484,12 @@ function mawTick_MonsterPush()
 	end
 end
 
+function events.LoadMap()
+	for _, p in ipairs(MawCore.DamageState.getPushes()) do
+		p.duration=0
+	end
+end
+
 
 ---------------------------------------
 --SHAMAN

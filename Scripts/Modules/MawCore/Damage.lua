@@ -601,7 +601,7 @@ local function stage_dragonAttack(t)
 		if data.Object==nil then
 			local breath = SplitSkill(data.Player:GetSkill(const.Skills.DragonAbility))
 			local fang, fangM = SplitSkill(data.Player:GetSkill(const.Skills.Unarmed))
-			if breath>=fang then
+			if breath>=fang and t.Monster.Level>0 then
 				local x, y = directionToUnitVector(Party.Direction)
 				mult=fang/t.Monster.Level^0.75
 				DamageState.addPush({["directionX"]=x, ["directionY"]=y, ["duration"]=60*mult^0.5, ["totalDuration"]=60*mult^0.5, ["totalForce"]=800*mult, ["currentForce"]=800*mult, ["id"]=t.MonsterIndex})
@@ -941,7 +941,7 @@ local function stage_bossAffixes(t)
 				end
 			end
 			if skill=="Regenerating" or skill=="Omnipotent" then
-				id=t.Monster:GetIndex()
+				local id=t.Monster:GetIndex()
 				mapvars.regenerating=mapvars.regenerating or {}
 				mapvars.regenerating[id] = mapvars.regenerating[id] or 0
 				mapvars.regenerating[id] = mapvars.regenerating[id] + 1

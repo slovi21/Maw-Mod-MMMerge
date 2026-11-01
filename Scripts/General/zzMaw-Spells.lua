@@ -1341,7 +1341,7 @@ CCMAP={
 	[const.Spells.Charm]=	{["Duration"]=const.Minute*10, ["ChanceMult"]=0.05, ["BaseCost"]=1, ["ScalingCost"]=4, ["School"]=const.Skills.DarkElfAbility, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Charm},--dark elf one
 	[const.Spells.Berserk]=	{["Duration"]=const.Minute*4.5, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=1.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Berserk},
 	[const.Spells.MassFear]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.1, ["BaseCost"]=1, ["ScalingCost"]=0.5, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear},
-	[const.Spells.Fear]=	{["Duration"]=const.Minute*4, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear},
+	[const.Spells.Fear]=	{["Duration"]=const.Minute*4, ["ChanceMult"]=0.005, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.DragonAbility, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Fear},
 	[const.Spells.Enslave]=	{["Duration"]=const.Minute*5, ["ChanceMult"]=0.07, ["BaseCost"]=1, ["ScalingCost"]=1, ["School"]=const.Skills.Mind, ["DamageKind"]=const.Damage.Mind, ["Debuff"]=const.MonsterBuff.Enslave},
 	[const.Spells.Paralyze]={["Duration"]=const.Minute*3, ["ChanceMult"]=0.04, ["BaseCost"]=1, ["ScalingCost"]=3, ["School"]=const.Skills.Light, ["DamageKind"]=const.Damage.Light,["Debuff"]=const.MonsterBuff.Paralyze},	
 	[const.Spells.ShrinkingRay]={["Duration"]=const.Minute*4, ["ChanceMult"]=0.01, ["BaseCost"]=1, ["ScalingCost"]=2, ["School"]=const.Skills.Dark, ["DamageKind"]=const.Damage.Dark,["Debuff"]=const.MonsterBuff.ShrinkingRay},
@@ -1730,6 +1730,23 @@ function events.MonsterAttacked(t)
 			end
 		end
 	end
+end
+
+function events.MonsterAttacked(t)
+	local o = t.Attacker and t.Attacker.Object
+	local pl = t.Attacker and t.Attacker.Player
+	if not (o and pl and o.Spell == const.Spells.Fear) or t.Handled then
+		return
+	end
+	local mon = t.Monster
+	local cc = CCMAP[const.Spells.Fear]
+	local before = mon.SpellBuffs[cc.Debuff].ExpireTime
+	local res = mon.Resistances[cc.DamageKind]
+	RunNextTick(function()
+		if mon.SpellBuffs[cc.Debuff].ExpireTime > before then
+			applyCCDebuff(mon, cc, pl, const.Spells.Fear, res, true)
+		end
+	end)
 end
 
 -- Debuff Groups for diminishing returns

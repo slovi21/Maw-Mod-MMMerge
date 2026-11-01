@@ -1006,11 +1006,13 @@ evt.PotionEffects[98] = function(IsDrunk, t, Power)
 end
 
 --manually use crafting items on maps
-local overworldMaps={1,2,3,4,5,6,7,8,9,10,11,12,13,14,62,63,64,65,66,67,68,69,70,71,72,73,74,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151}
+local overworldMaps={1,2,3,4,5,6,7,8,9,11,12,13,14,62,63,64,65,66,67,68,69,70,71,72,73,74,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151}
 
 local chargePotions={231, 232, 233, 237, 245, 251, 257, 263}
 CRAFTING_CUBE_POWER=4
 CRAFTING_CUBE_POWER_WEAPON_ARMOR=2
+local MAP_REROLL_SHIFT=16
+local MAP_REROLL_MASK=0xFF
 
 function GetCraftingCubeCap(level)
 	return math.min(math.floor(math.max(level,0)/MawCore.ItemLevel.PerPower), GetPrimordialCharges(math.huge))
@@ -1055,7 +1057,8 @@ function UseItem(it, usedIt)
 			end
 		elseif id==1070 then
 			local outside=table.find(overworldMaps,it.BonusStrength)~=nil
-			math.randomseed(it.BonusStrength+it.Bonus2*1000+it.Charges+1000000)
+			local rerolls=bit.band(bit.rshift(it.Condition, MAP_REROLL_SHIFT), MAP_REROLL_MASK)
+			math.randomseed(it.BonusStrength+it.Bonus2*1000+it.Charges+1000000+rerolls*100000)
 			local possibleMaps={}
 			for _, mapId in ipairs(getDimensionMapPool()) do
 				if mapId~=it.BonusStrength and (table.find(overworldMaps,mapId)~=nil)==outside then
@@ -1064,6 +1067,8 @@ function UseItem(it, usedIt)
 			end
 			if #possibleMaps>0 then
 				it.BonusStrength=possibleMaps[math.random(1,#possibleMaps)]
+				it.Condition=bit.bor(bit.band(it.Condition, bit.bnot(bit.lshift(MAP_REROLL_MASK, MAP_REROLL_SHIFT))),
+					bit.lshift(math.min(rerolls+1, MAP_REROLL_MASK), MAP_REROLL_SHIFT))
 				craftUsed=true
 			else
 				Game.ShowStatusText("No other completed dungeon to move this map to")
@@ -1119,12 +1124,17 @@ function events.MonsterKilled(mon)
 	if mon.Ally == 9999 or mon.NameId>300 then -- no drop from reanimated monsters
 		return
 	end
-	if vars.madnessMode then 
+	if vars.madnessMode then
 		if mapvars.mawBounty or Map.Name=="zarena.blv" or Map.Name=="d42.blv" or Map.Name=="7d05.blv" then
 			return
 		end
 	end
-	
+	if getBossSkill(mon)=="Skilled" then
+		for i=1,4 do
+			SummonItem(656, mon.X, mon.Y, mon.Z + 100, 100)
+		end
+	end
+
 	-- Apply seeding for deterministic drops (use same system as loot drops)
 	if vars.insanityMode then
 		-- Use the same deterministic monster-type seeding as loot drops
